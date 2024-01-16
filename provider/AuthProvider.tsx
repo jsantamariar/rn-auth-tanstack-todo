@@ -26,7 +26,6 @@ export const AuthProvider = ({ children }: any) => {
     useEffect(() => {
         const loadToken = async () => {
             const storedToken = await SecureStore.getItemAsync(JWT_KEY);
-            console.log({ storedToken });
             if (storedToken) {
                 setToken(storedToken);
                 axios.defaults.headers.common['Authorization'] = `Bearer ${storedToken}`;
@@ -52,7 +51,6 @@ export const AuthProvider = ({ children }: any) => {
     const handleRegister = async (email: string, password: string) => {
         try {
             const response = await axios.post(`${API_URL}/users`, { email, password });
-            console.log({ handleRegister: response })
             return response;
 
         } catch (error: any) {

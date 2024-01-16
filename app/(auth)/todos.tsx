@@ -1,12 +1,15 @@
 import React, { useState } from 'react'
-import { View, Text, StyleSheet, TextInput, Button, FlatList, ListRenderItem, TouchableOpacity } from 'react-native'
+import { View, Text, StyleSheet, TextInput, Button, FlatList, ListRenderItem, TouchableOpacity, Image } from 'react-native'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { createTodo, deleteTodo, getTodos, updateTodo } from '../../api/todos';
+import { createTodo, deleteTodo, getTodos, updateTodo, uploadImage } from '../../api/todos';
 import { Entypo, Ionicons } from '@expo/vector-icons';
 import { Todo } from '@/interfaces';
+import * as ImagePicker from 'expo-image-picker';
+import { useAuth } from '../../provider/AuthProvider';
 
 const Page = () => {
     const queryClient = useQueryClient();
+    const { token } = useAuth();
 
     const [todo, setTodo] = useState('');
 
@@ -14,6 +17,14 @@ const Page = () => {
         queryKey: ['todos'],
         queryFn: getTodos
     });
+
+
+    const updateQueryClient = (updatedTodo: Todo) => {
+        console.log('UPDATED', updateTodo)
+        queryClient.setQueryData(['todos'], (data: any) => {
+            return data.map((item: Todo) => (item._id === updatedTodo._id ? updateTodo : item))
+        })
+    }
 
     const addMutation = useMutation({
         mutationFn: createTodo,
@@ -23,13 +34,18 @@ const Page = () => {
         }
     });
 
+    const addTodo = () => {
+        addMutation.mutate(todo);
+    };
+
     const updateMutation = useMutation({
         mutationFn: updateTodo,
-        onSuccess: (updated) => {
-            queryClient.setQueryData(['todos'], (data: Todo[]) => {
-                return data.map((item: Todo) => item._id === updated._id ? updated : item)
-            });
-        }
+        onSuccess: updateQueryClient
+    });
+
+    const uploadImageMutation = useMutation({
+        mutationFn: uploadImage,
+        onSuccess: updateQueryClient
     });
 
     const deleteMutation = useMutation({
@@ -37,18 +53,26 @@ const Page = () => {
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['todos'] });
         }
-    })
+    });
 
-    const addTodo = () => {
-        addMutation.mutate(todo);
-    };
 
     const renderItem: ListRenderItem<Todo> = ({ item }) => {
         const deleteTodo = () => {
             deleteMutation.mutate(item._id);
         };
 
-        const captureImage = () => {
+        const captureImage = async () => {
+            const result = await ImagePicker.launchImageLibraryAsync({
+                mediaTypes: ImagePicker.MediaTypeOptions.Images,
+                allowsEditing: true,
+                quality: 1
+            });
+
+            if (!result.canceled) {
+                const uri = result.assets[0].uri;
+                console.log({ id: item._id, uri, token: token! })
+                uploadImageMutation.mutate({ id: item._id, uri, token: token! })
+            }
 
         };
 
@@ -58,7 +82,8 @@ const Page = () => {
         };
 
         return (
-            <View style={{ marginBottom: 6 }}>
+            <View style={styles.rootContainer}>
+                {item.img && <Image source={{ uri: item.img, headers: { Authorization: `Bearer ${token}` } }} style={{ width: '100%', height: 200, opacity: item.status === 0 ? 1 : 0.4 }} />}
                 <View style={styles.todoContainer}>
                     <TouchableOpacity onPress={toggleDone} style={styles.todo}>
                         {item.status === 0 && <Entypo name="circle" size={24} color='black' />}
@@ -66,7 +91,7 @@ const Page = () => {
                         <Text style={styles.todoText}>{item.task}</Text>
                     </TouchableOpacity>
                     <Ionicons name="trash-bin-outline" size={24} color={'red'} onPress={deleteTodo} />
-                    <Ionicons name="camera-outline" size={24} color={'blue'} onPress={deleteTodo} />
+                    <Ionicons name="camera-outline" size={24} color={'blue'} onPress={captureImage} />
                 </View>
             </View>
         )
@@ -86,6 +111,9 @@ const Page = () => {
 export default Page;
 
 const styles = StyleSheet.create({
+    rootContainer: {
+        marginBottom: 6
+    },
     container: {
         marginHorizontal: 20,
         flex: 1,

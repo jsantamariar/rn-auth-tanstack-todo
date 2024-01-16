@@ -12,8 +12,6 @@ const InitialLayout = () => {
 
     useEffect(() => {
         if (!initialized) return;
-        console.log({ segments })
-
         const inAuthGroup = segments[0] === '(auth)';
 
         if (token && !inAuthGroup) {

@@ -1,5 +1,6 @@
-import { Todo } from "@/interfaces";
 import axios from "axios";
+import { Todo } from "@/interfaces";
+import * as FileSystem from 'expo-file-system';
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL;
 
@@ -27,4 +28,15 @@ export const updateTodo = async (todo: Todo) => {
 export const deleteTodo = async (id: string) => {
     const result = await axios.delete(`${API_URL}/todos/${id}`)
     return result.data;
-}
+};
+
+export const uploadImage = async ({ id, uri, token }: { id: string, uri: string, token: string }) => {
+    return FileSystem.uploadAsync(`${API_URL}/todos/${id}/img`, uri, {
+        httpMethod: 'POST',
+        uploadType: FileSystem.FileSystemUploadType.MULTIPART,
+        fieldName: 'file',
+        headers: {
+            Authorization: `Bearer ${token}`,
+        }
+    }).then((res) => JSON.parse(res.body));
+};
