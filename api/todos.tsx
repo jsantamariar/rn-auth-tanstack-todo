@@ -21,7 +21,7 @@ export const createTodo = async (task: string): Promise<Todo> => {
 };
 
 export const updateTodo = async (todo: Todo) => {
-    const result = await axios.put(`${API_URL}/todos/${todo._id}`, todo)
+    const result = await axios.put(`${API_URL}/todos/${todo._id}`, todo);
     return result.data;
 };
 
